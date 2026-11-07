@@ -21,16 +21,14 @@ app.get('/', (req, res) => {
     res.status(200).send('⚡ Spike.lol Advanced Raid Bot is active and running!');
 });
 
-// Health-check route taaki Render ka deployment success dikhe aur logs stuck na hon[span_1](start_span)[span_1](end_span)
 app.get('/health', (req, res) => {
     res.status(200).json({ status: 'OK', uptime: process.uptime() });
 });
 
 app.listen(PORT, () => {
-    console.log(`[HTTP] Server running and listening on port ${PORT}`);[span_2](start_span)[span_2](end_span)
+    console.log(`[HTTP] Server running and listening on port ${PORT}`);
 });
 
-// Periodic heartbeat log taaki Render console mein activity chalti rahe
 setInterval(() => {
     console.log(`[UPTIME HEARTBEAT] Bot service is alive. Uptime: ${Math.floor(process.uptime())}s`);
 }, 60000);
@@ -118,22 +116,31 @@ function createBot(index) {
 }
 
 function startHumanBehavior(bot) {
-    setInterval(() => {
-        if (!bot.entity) return;
+    const moveInterval = setInterval(() => {
+        if (!bot || !bot.entity || !bot._client || bot._client.ended) {
+            clearInterval(moveInterval);
+            return;
+        }
         const directions = ['forward', 'back', 'left', 'right'];
         const randomDir = directions[Math.floor(Math.random() * directions.length)];
         bot.setControlState(randomDir, true);
-        setTimeout(() => bot.clearControlStates(), 4000);
+        setTimeout(() => { if (bot && bot.clearControlStates) bot.clearControlStates(); }, 4000);
     }, 6000);
 
-    setInterval(() => {
-        if (!bot.entity) return;
+    const jumpInterval = setInterval(() => {
+        if (!bot || !bot.entity || !bot._client || bot._client.ended) {
+            clearInterval(jumpInterval);
+            return;
+        }
         bot.setControlState('jump', true);
-        setTimeout(() => bot.setControlState('jump', false), 500);
+        setTimeout(() => { if (bot && bot.setControlState) bot.setControlState('jump', false); }, 500);
     }, 10000);
 
-    setInterval(() => {
-        if (!bot.entity) return;
+    const lookInterval = setInterval(() => {
+        if (!bot || !bot.entity || !bot._client || bot._client.ended) {
+            clearInterval(lookInterval);
+            return;
+        }
         const yaw = Math.random() * Math.PI * 2;
         const pitch = (Math.random() * Math.PI) - (Math.PI / 2);
         bot.look(yaw, pitch, true).catch(() => {});
@@ -141,13 +148,21 @@ function startHumanBehavior(bot) {
 }
 
 function startSpamming(bot) {
-    setInterval(() => {
-        if (!bot.entity || sleepMode) return;
+    const spamInterval = setInterval(() => {
+        if (!bot || !bot.entity || !bot._client || bot._client.ended || sleepMode) {
+            clearInterval(spamInterval);
+            return;
+        }
         const messages = getSpamMessages();
         const rawMsg = messages[Math.floor(Math.random() * messages.length)];
         const randomSuffix = Math.floor(10 + Math.random() * 90);
         const finalMsg = `${rawMsg} [${randomSuffix}]`;
-        bot.chat(finalMsg).catch(() => {});
+        
+        try {
+            if (bot && typeof bot.chat === 'function') {
+                bot.chat(finalMsg);
+            }
+        } catch (e) {}
     }, CONFIG.SPAM_INTERVAL);
 }
 
@@ -173,7 +188,7 @@ const commands = [
 const rest = new REST({ version: '10' }).setToken(TOKEN);
 
 client.once('ready', async () => {
-    console.log(`[DISCORD] Logged in as ${client.user.tag}`);[span_3](start_span)[span_3](end_span)
+    console.log(`[DISCORD] Logged in as ${client.user.tag}`);
     await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
 });
 
