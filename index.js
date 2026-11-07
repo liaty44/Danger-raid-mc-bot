@@ -8,17 +8,17 @@ import express from 'express';
 const CONFIG = {
     DEFAULT_IP: "",
     DEFAULT_PORT: null,
-    MC_PASSWORD: "Spike123",
+    MC_PASSWORD: "spike123",
     MAX_BOTS: 4,
     SPAM_INTERVAL: 1500
 };
 
-// ==================== 🌐 Express Uptime Server (Render Fix) ====================
+// ==================== 🌐 Express Uptime Server (Render Build Fix) ====================
 const app = express();
 const PORT = process.env.PORT || 10000;
 
 app.get('/', (req, res) => {
-    res.status(200).send('⚡ Spike.lol Advanced Raid Bot is active and running!');
+    res.status(200).send('⚡ Spike.lol Bot is Live!');
 });
 
 app.get('/health', (req, res) => {
@@ -26,13 +26,13 @@ app.get('/health', (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`[HTTP] Server running and listening on port ${PORT}`);
+    console.log(`[HTTP Server] Listening on port ${PORT} - Ready for Render health checks.`);
 });
 
 setInterval(() => {
-    console.log(`[UPTIME HEARTBEAT] Bot service is alive. Uptime: ${Math.floor(process.uptime())}s`);
-}, 60000);
-// ===================================================================
+    console.log(`[HEARTBEAT] Service active. Uptime: ${Math.floor(process.uptime())}s`);
+}, 45000);
+// ===================================================================================
 
 const TOKEN = process.env.DISCORD_TOKEN;
 const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
@@ -98,7 +98,7 @@ function createBot(index) {
     });
 
     bot.on('chat', (username, message) => {
-        if (username === bot.username) return;
+        if (!bot || username === bot.username) return;
         const msgLower = message.toLowerCase();
         if (msgLower.includes('register') || msgLower.includes('/reg')) {
             bot.chat(`/register ${CONFIG.MC_PASSWORD} ${CONFIG.MC_PASSWORD}`);
@@ -108,7 +108,7 @@ function createBot(index) {
     });
 
     bot.on('end', (reason) => {
-        sendLog(`🔴 Bot **${botName}** disconnected (${reason}). Replacing...`);
+        sendLog(`🔴 Bot **${botName}** disconnected (${reason}). Cleaning up...`);
         bots = bots.filter(b => b !== bot);
     });
 
