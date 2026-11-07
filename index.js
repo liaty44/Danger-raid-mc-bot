@@ -1,30 +1,53 @@
 import 'dotenv/config';
-import { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, ActionRowBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, EmbedBuilder } from 'discord.js';
+import { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, ActionRowBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
 import mineflayer from 'mineflayer';
 import { readFileSync, existsSync } from 'fs';
 import express from 'express';
 
-// 🌐 Express Server for Uptime
+// ==================== ⚙️ CONFIGURATION ====================
+const CONFIG = {
+    DEFAULT_IP: "",
+    DEFAULT_PORT: null,
+    MC_PASSWORD: "Spike123",
+    MAX_BOTS: 4,
+    SPAM_INTERVAL: 1500
+};
+
+// ==================== 🌐 Express Uptime Server (Render Fix) ====================
 const app = express();
 const PORT = process.env.PORT || 10000;
-app.get('/', (req, res) => res.send('⚡ Spike.lol Advanced Raid Bot is active!'));
-app.listen(PORT, () => console.log(`[HTTP] Server running on port ${PORT}`));
+
+app.get('/', (req, res) => {
+    res.status(200).send('⚡ Spike.lol Advanced Raid Bot is active and running!');
+});
+
+// Health-check route taaki Render ka deployment success dikhe aur logs stuck na hon[span_1](start_span)[span_1](end_span)
+app.get('/health', (req, res) => {
+    res.status(200).json({ status: 'OK', uptime: process.uptime() });
+});
+
+app.listen(PORT, () => {
+    console.log(`[HTTP] Server running and listening on port ${PORT}`);[span_2](start_span)[span_2](end_span)
+});
+
+// Periodic heartbeat log taaki Render console mein activity chalti rahe
+setInterval(() => {
+    console.log(`[UPTIME HEARTBEAT] Bot service is alive. Uptime: ${Math.floor(process.uptime())}s`);
+}, 60000);
+// ===================================================================
 
 const TOKEN = process.env.DISCORD_TOKEN;
 const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
-const MC_PASSWORD = process.env.MC_PASSWORD || 'spike123'; // Variable se password uthayega
 
 const client = new Client({
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages]
 });
 
-let targetHost = '';
-let targetPort = null;
+let targetHost = CONFIG.DEFAULT_IP;
+let targetPort = CONFIG.DEFAULT_PORT;
 let isRunning = false;
 let sleepMode = false;
 let bots = [];
-let targetFollowUser = null;
-const MAX_BOTS = 4;
 
 function getSpamMessages() {
     try {
@@ -67,7 +90,6 @@ function createBot(index) {
         try { bot.respawn(); } catch (e) {}
     });
 
-    // GUI & Chest Login Bypass
     bot.on('windowOpen', (window) => {
         sendLog(`🔐 Bot **${botName}** detected GUI/Chest login.`);
         setTimeout(() => {
@@ -77,14 +99,13 @@ function createBot(index) {
         }, 1000);
     });
 
-    // Variable based Register / Login handler
     bot.on('chat', (username, message) => {
         if (username === bot.username) return;
         const msgLower = message.toLowerCase();
         if (msgLower.includes('register') || msgLower.includes('/reg')) {
-            bot.chat(`/register ${MC_PASSWORD} ${MC_PASSWORD}`);
+            bot.chat(`/register ${CONFIG.MC_PASSWORD} ${CONFIG.MC_PASSWORD}`);
         } else if (msgLower.includes('login') || msgLower.includes('/l')) {
-            bot.chat(`/login ${MC_PASSWORD}`);
+            bot.chat(`/login ${CONFIG.MC_PASSWORD}`);
         }
     });
 
@@ -127,7 +148,7 @@ function startSpamming(bot) {
         const randomSuffix = Math.floor(10 + Math.random() * 90);
         const finalMsg = `${rawMsg} [${randomSuffix}]`;
         bot.chat(finalMsg).catch(() => {});
-    }, 1500);
+    }, CONFIG.SPAM_INTERVAL);
 }
 
 function startRaidSystem() {
@@ -137,10 +158,10 @@ function startRaidSystem() {
             clearInterval(controlInterval);
             return;
         }
-        if (bots.length < MAX_BOTS && !sleepMode) {
+        if (bots.length < CONFIG.MAX_BOTS && !sleepMode) {
             createBot(bots.length + 1);
         }
-    }, 1500);
+    }, CONFIG.SPAM_INTERVAL);
 }
 
 const commands = [
@@ -152,7 +173,7 @@ const commands = [
 const rest = new REST({ version: '10' }).setToken(TOKEN);
 
 client.once('ready', async () => {
-    console.log(`[DISCORD] Logged in as ${client.user.tag}`);
+    console.log(`[DISCORD] Logged in as ${client.user.tag}`);[span_3](start_span)[span_3](end_span)
     await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
 });
 
@@ -169,7 +190,7 @@ client.on('interactionCreate', async (interaction) => {
             if (!targetHost) return interaction.reply({ content: '❌ Pehle `/ip` se IP set karein!', ephemeral: true });
             if (isRunning) return interaction.reply({ content: '⚠️ Bots pehle se chal rahe hain!', ephemeral: true });
             startRaidSystem();
-            await interaction.reply({ content: `🚀 **Raid started!** Connecting 4 bots to **${targetHost}**...`, ephemeral: true });
+            await interaction.reply({ content: `🚀 **Raid started!** Connecting ${CONFIG.MAX_BOTS} bots to **${targetHost}**...`, ephemeral: true });
         } else if (commandName === 'stop') {
             isRunning = false;
             bots.forEach(b => { try { b.quit(); } catch (e) {} });
